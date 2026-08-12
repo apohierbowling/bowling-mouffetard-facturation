@@ -2,6 +2,7 @@
 Génération de PDF pour les devis et factures, avec fpdf2.
 """
 
+from datetime import date as _date
 from pathlib import Path
 
 from fpdf import FPDF
@@ -13,6 +14,16 @@ GRIS = (90, 90, 90)
 GRIS_CLAIR = (240, 240, 240)
 
 LOGO_PATH = Path(__file__).parent / "logo.png"
+
+
+def _fr(date_iso):
+    """Convertit une date stockée au format ISO (AAAA-MM-JJ) en JJ/MM/AAAA pour l'affichage."""
+    if not date_iso:
+        return ""
+    try:
+        return _date.fromisoformat(str(date_iso)).strftime("%d/%m/%Y")
+    except ValueError:
+        return str(date_iso)
 
 
 def _dimensions_logo(hauteur_mm):
@@ -95,10 +106,10 @@ def generer_pdf(document, client, lignes, entreprise):
     pdf.set_text_color(20, 20, 20)
     pdf.cell(0, 5, f"N° {document['numero']}", ln=1, align="R")
     pdf.set_x(115)
-    pdf.cell(0, 5, f"Date d'émission : {document['date_emission']}", ln=1, align="R")
+    pdf.cell(0, 5, f"Date d'émission : {_fr(document['date_emission'])}", ln=1, align="R")
     if document.get("date_echeance"):
         pdf.set_x(115)
-        pdf.cell(0, 5, f"Échéance : {document['date_echeance']}", ln=1, align="R")
+        pdf.cell(0, 5, f"Échéance : {_fr(document['date_echeance'])}", ln=1, align="R")
 
     details_entreprise = []
     if entreprise.get("siret"):
