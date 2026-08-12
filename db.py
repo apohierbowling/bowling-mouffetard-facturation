@@ -157,6 +157,8 @@ def _init_schema_sqlite(conn):
         cur.execute("ALTER TABLE documents ADD COLUMN mode_reglement TEXT")
     if "montant_acompte" not in colonnes_documents:
         cur.execute("ALTER TABLE documents ADD COLUMN montant_acompte REAL DEFAULT 0")
+    if "date_evenement" not in colonnes_documents:
+        cur.execute("ALTER TABLE documents ADD COLUMN date_evenement TEXT")
 
     cur.execute(
         """
@@ -253,6 +255,7 @@ def _init_schema_postgres(conn):
             document_origine_id INTEGER,
             mode_reglement TEXT,
             montant_acompte REAL DEFAULT 0,
+            date_evenement TEXT,
             created_at TEXT,
             updated_at TEXT
         )
@@ -261,6 +264,7 @@ def _init_schema_postgres(conn):
     # Idempotent : ne fait rien si les colonnes existent déjà (bases créées avec un schéma plus ancien).
     cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS mode_reglement TEXT")
     cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS montant_acompte REAL DEFAULT 0")
+    cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS date_evenement TEXT")
 
     cur.execute(
         """
@@ -474,7 +478,7 @@ def next_numero(type_doc, annee=None):
 
 def create_document(type_doc, numero, client_id, date_emission, date_echeance, statut,
                      notes, conditions_paiement, lignes, document_origine_id=None,
-                     mode_reglement=None, montant_acompte=0.0):
+                     mode_reglement=None, montant_acompte=0.0, date_evenement=None):
     now = datetime.now().isoformat(timespec="seconds")
     conn = get_conn()
     document_id = executer_insertion(
@@ -483,12 +487,12 @@ def create_document(type_doc, numero, client_id, date_emission, date_echeance, s
         INSERT INTO documents
             (type_doc, numero, client_id, date_emission, date_echeance, statut,
              notes, conditions_paiement, document_origine_id, mode_reglement,
-             montant_acompte, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             montant_acompte, date_evenement, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (type_doc, numero, client_id, str(date_emission), str(date_echeance) if date_echeance else None,
          statut, notes, conditions_paiement, document_origine_id, mode_reglement,
-         montant_acompte or 0.0, now, now),
+         montant_acompte or 0.0, date_evenement, now, now),
     )
     _inserer_lignes(conn, document_id, lignes)
     conn.commit()
@@ -497,7 +501,8 @@ def create_document(type_doc, numero, client_id, date_emission, date_echeance, s
 
 
 def update_document(document_id, type_doc, numero, client_id, date_emission, date_echeance,
-                     statut, notes, conditions_paiement, lignes, mode_reglement=None, montant_acompte=0.0):
+                     statut, notes, conditions_paiement, lignes, mode_reglement=None,
+                     montant_acompte=0.0, date_evenement=None):
     now = datetime.now().isoformat(timespec="seconds")
     conn = get_conn()
     executer(
@@ -505,11 +510,13 @@ def update_document(document_id, type_doc, numero, client_id, date_emission, dat
         """
         UPDATE documents SET
             type_doc=?, numero=?, client_id=?, date_emission=?, date_echeance=?,
-            statut=?, notes=?, conditions_paiement=?, mode_reglement=?, montant_acompte=?, updated_at=?
+            statut=?, notes=?, conditions_paiement=?, mode_reglement=?, montant_acompte=?,
+            date_evenement=?, updated_at=?
         WHERE id=?
         """,
         (type_doc, numero, client_id, str(date_emission), str(date_echeance) if date_echeance else None,
-         statut, notes, conditions_paiement, mode_reglement, montant_acompte or 0.0, now, document_id),
+         statut, notes, conditions_paiement, mode_reglement, montant_acompte or 0.0,
+         date_evenement, now, document_id),
     )
     executer(conn, "DELETE FROM lignes WHERE document_id = ?", (document_id,))
     _inserer_lignes(conn, document_id, lignes)
@@ -627,4 +634,5 @@ def transformer_devis_en_facture(devis_id):
         conditions_paiement=devis["conditions_paiement"],
         lignes=lignes_pour_creation,
         document_origine_id=devis_id,
+        date_evenement=devis.get("date_evenement"),
     )

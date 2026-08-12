@@ -31,7 +31,7 @@ def reset_formulaire_document():
             "edit_doc_id", "type_doc_input", "client_select", "numero_doc_input",
             "date_emission_input", "date_echeance_input", "def_echeance_checkbox",
             "statut_input", "conditions_input", "notes_input", "num_lignes",
-            "mode_reglement_input", "montant_acompte_input",
+            "mode_reglement_input", "montant_acompte_input", "date_evenement_input",
         ):
             del st.session_state[cle]
 
@@ -56,6 +56,7 @@ def charger_document_pour_edition(document_id):
     st.session_state.notes_input = document["notes"] or ""
     st.session_state.mode_reglement_input = document.get("mode_reglement") or db.MODES_REGLEMENT[0]
     st.session_state.montant_acompte_input = document.get("montant_acompte") or 0.0
+    st.session_state.date_evenement_input = document.get("date_evenement") or ""
 
     st.session_state.num_lignes = max(len(lignes), 1)
     for i, ligne in enumerate(lignes):
@@ -96,6 +97,7 @@ def dupliquer_document(document_id):
         document["type_doc"], numero, document["client_id"], date.today(), None,
         statut_defaut, document["notes"], document["conditions_paiement"], lignes_pour_creation,
         mode_reglement=document.get("mode_reglement"), montant_acompte=0.0,
+        date_evenement=document.get("date_evenement"),
     )
 
 
@@ -154,6 +156,7 @@ if page == "🆕 Créer / Éditer":
         st.session_state.setdefault("def_echeance_checkbox", False)
         st.session_state.setdefault("conditions_input", "")
         st.session_state.setdefault("notes_input", "")
+        st.session_state.setdefault("date_evenement_input", "")
 
         type_doc = st.selectbox("Type de document", ["Devis", "Facture"], key="type_doc_input")
 
@@ -174,6 +177,11 @@ if page == "🆕 Créer / Éditer":
             client_id = st.selectbox(
                 "Client", options=list(clients_par_id.keys()),
                 format_func=lambda cid: clients_par_id[cid], key="client_select",
+            )
+            date_evenement = st.text_input(
+                "Date de l'événement du client", key="date_evenement_input",
+                placeholder="Ex : samedi 14 mars 2026, après-midi",
+                help="Rédaction libre — n'importe quel format de date ou de créneau.",
             )
             numero_doc = st.text_input("Numéro du document", key="numero_doc_input")
             statut = st.selectbox("Statut", statuts, key="statut_input")
@@ -347,6 +355,7 @@ if page == "🆕 Créer / Éditer":
                         st.session_state.edit_doc_id, type_doc, numero_doc.strip(), client_id,
                         date_emission, date_echeance, statut, notes, conditions, lignes_saisies,
                         mode_reglement=mode_reglement, montant_acompte=montant_acompte,
+                        date_evenement=date_evenement.strip(),
                     )
                     st.success(f"Document **{numero_doc}** mis à jour.")
                 else:
@@ -354,6 +363,7 @@ if page == "🆕 Créer / Éditer":
                         type_doc, numero_doc.strip(), client_id, date_emission, date_echeance,
                         statut, notes, conditions, lignes_saisies,
                         mode_reglement=mode_reglement, montant_acompte=montant_acompte,
+                        date_evenement=date_evenement.strip(),
                     )
                     st.success(f"Document **{numero_doc}** enregistré.")
                 reset_formulaire_document()
@@ -398,6 +408,7 @@ elif page == "🗂️ Documents":
                 "Type": doc["type_doc"],
                 "Client": doc["client_nom"],
                 "Date": doc["date_emission"],
+                "Date événement": doc.get("date_evenement") or "",
                 "Statut": doc["statut"],
                 "Total HT": total_ht,
                 "Total TTC": total_ttc,
@@ -421,6 +432,8 @@ elif page == "🗂️ Documents":
             )
             st.write(f"**Client :** {client_doc['nom']}")
             st.write(f"**Émis le :** {doc['date_emission']}" + (f" • **Échéance :** {doc['date_echeance']}" if doc["date_echeance"] else ""))
+            if doc.get("date_evenement"):
+                st.info(f"📅 **Date de l'événement :** {doc['date_evenement']}")
             if doc["type_doc"] == "Facture" and doc.get("mode_reglement"):
                 st.write(f"**Mode de règlement :** {doc['mode_reglement']}")
             st.dataframe(

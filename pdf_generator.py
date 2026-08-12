@@ -146,6 +146,17 @@ def generer_pdf(document, client, lignes, entreprise):
 
     pdf.ln(4)
 
+    # --- Date de l'événement (rédaction libre) ---
+    if document.get("date_evenement"):
+        pdf.set_fill_color(*GRIS_CLAIR)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_text_color(*BLEU)
+        pdf.cell(0, 6, "Date de l'événement", ln=1, fill=True)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(20, 20, 20)
+        pdf.cell(0, 5.5, document["date_evenement"], ln=1)
+        pdf.ln(4)
+
     # --- Tableau des lignes ---
     largeurs = [85, 20, 28, 20, 27]
     entetes = ["Description", "Qté", "Prix unit. HT", "TVA", "Total HT"]
