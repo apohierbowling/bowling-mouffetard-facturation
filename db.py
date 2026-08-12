@@ -433,7 +433,17 @@ def delete_tarif(tarif_id):
 
 def tarif_prix_unitaire_ht(tarif):
     """Convertit le montant TTC d'un tarif du catalogue en prix unitaire HT."""
-    return tarif["montant_ttc"] / (1 + tarif["taux_tva"] / 100)
+    return ht_depuis_ttc(tarif["montant_ttc"], tarif["taux_tva"])
+
+
+def ht_depuis_ttc(montant_ttc, taux_tva):
+    """Convertit un montant TTC en montant HT pour un taux de TVA donné."""
+    return montant_ttc / (1 + (taux_tva or 0) / 100)
+
+
+def ttc_depuis_ht(montant_ht, taux_tva):
+    """Convertit un montant HT en montant TTC pour un taux de TVA donné."""
+    return montant_ht * (1 + (taux_tva or 0) / 100)
 
 
 # ---------------------------------------------------------------------------

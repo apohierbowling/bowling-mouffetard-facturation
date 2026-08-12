@@ -62,7 +62,7 @@ def charger_document_pour_edition(document_id):
         st.session_state[f"desc_{i}"] = ligne["description"]
         st.session_state[f"detail_{i}"] = ligne.get("detail") or ""
         st.session_state[f"qte_{i}"] = ligne["quantite"]
-        st.session_state[f"pu_{i}"] = ligne["prix_unitaire_ht"]
+        st.session_state[f"pu_{i}"] = round(db.ttc_depuis_ht(ligne["prix_unitaire_ht"], ligne["taux_tva"]), 4)
         st.session_state[f"tva_{i}"] = ligne["taux_tva"]
 
 
@@ -230,7 +230,7 @@ if page == "🆕 Créer / Éditer":
                     st.session_state[f"desc_{index}"] = tarif["designation"]
                     st.session_state[f"detail_{index}"] = tarif["description"] or ""
                     st.session_state[f"qte_{index}"] = 1.0
-                    st.session_state[f"pu_{index}"] = round(db.tarif_prix_unitaire_ht(tarif), 4)
+                    st.session_state[f"pu_{index}"] = tarif["montant_ttc"]
                     st.session_state[f"tva_{index}"] = tarif["taux_tva"]
                     st.rerun()
         else:
@@ -242,7 +242,7 @@ if page == "🆕 Créer / Éditer":
             col_h = st.columns([4, 1, 2, 1, 1.3, 0.6])
             col_h[0].markdown("**Description**")
             col_h[1].markdown("**Qté**")
-            col_h[2].markdown("**Prix unit. HT (€)**")
+            col_h[2].markdown("**Prix unit. TTC (€)**")
             col_h[3].markdown("**TVA (%)**")
             col_h[4].markdown("**Total TTC ligne**")
 
@@ -271,7 +271,7 @@ if page == "🆕 Créer / Éditer":
                 )
             with c3:
                 st.number_input(
-                    f"Prix unitaire ligne {i + 1}", key=f"pu_{i}", min_value=0.0,
+                    f"Prix unitaire TTC ligne {i + 1}", key=f"pu_{i}", min_value=0.0,
                     step=10.0, format="%.2f", label_visibility="collapsed",
                 )
             with c4:
@@ -280,10 +280,7 @@ if page == "🆕 Créer / Éditer":
                     label_visibility="collapsed",
                 )
             with c5:
-                total_ligne_ttc = (
-                    st.session_state[f"qte_{i}"] * st.session_state[f"pu_{i}"]
-                    * (1 + st.session_state[f"tva_{i}"] / 100)
-                )
+                total_ligne_ttc = st.session_state[f"qte_{i}"] * st.session_state[f"pu_{i}"]
                 st.markdown(f"<div style='padding-top: 8px'>{eur(total_ligne_ttc)}</div>", unsafe_allow_html=True)
             with c6:
                 st.button(
@@ -305,10 +302,10 @@ if page == "🆕 Créer / Éditer":
         lignes_apercu = []
         for i in range(st.session_state.num_lignes):
             qte = st.session_state.get(f"qte_{i}", 0.0)
-            pu = st.session_state.get(f"pu_{i}", 0.0)
+            pu_ttc = st.session_state.get(f"pu_{i}", 0.0)
             tva = st.session_state.get(f"tva_{i}", 0.0)
             if qte > 0:
-                lignes_apercu.append({"quantite": qte, "prix_unitaire": pu, "taux_tva": tva})
+                lignes_apercu.append({"quantite": qte, "prix_unitaire": db.ht_depuis_ttc(pu_ttc, tva), "taux_tva": tva})
         if lignes_apercu:
             total_ht, detail_tva, total_ttc = db.calculer_totaux(lignes_apercu)
             if type_doc == "Facture" and montant_acompte > 0:
@@ -330,11 +327,14 @@ if page == "🆕 Créer / Éditer":
                 desc = st.session_state.get(f"desc_{i}", "").strip()
                 detail = st.session_state.get(f"detail_{i}", "").strip()
                 qte = st.session_state.get(f"qte_{i}", 0.0)
-                pu = st.session_state.get(f"pu_{i}", 0.0)
+                pu_ttc = st.session_state.get(f"pu_{i}", 0.0)
                 tva = st.session_state.get(f"tva_{i}", 0.0)
                 if desc and qte > 0:
                     lignes_saisies.append(
-                        {"description": desc, "detail": detail, "quantite": qte, "prix_unitaire": pu, "taux_tva": tva}
+                        {
+                            "description": desc, "detail": detail, "quantite": qte,
+                            "prix_unitaire": db.ht_depuis_ttc(pu_ttc, tva), "taux_tva": tva,
+                        }
                     )
 
             if not numero_doc.strip():
