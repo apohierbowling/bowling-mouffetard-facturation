@@ -141,7 +141,6 @@ if page == "🆕 Créer / Éditer":
         with col_annuler:
             if st.button("➕ Nouveau document", use_container_width=True):
                 reset_formulaire_document()
-                st.rerun()
 
     clients = db.list_clients()
     if not clients:
@@ -219,7 +218,6 @@ if page == "🆕 Créer / Éditer":
         with col_plus:
             if st.button("➕ Ajouter une ligne vide", use_container_width=True):
                 st.session_state.num_lignes += 1
-                st.rerun()
 
         tarifs_actifs = db.list_tarifs(actifs_seulement=True)
         if tarifs_actifs:
@@ -240,7 +238,6 @@ if page == "🆕 Créer / Éditer":
                     st.session_state[f"qte_{index}"] = 1.0
                     st.session_state[f"pu_{index}"] = tarif["montant_ttc"]
                     st.session_state[f"tva_{index}"] = tarif["taux_tva"]
-                    st.rerun()
         else:
             with col_catalogue:
                 st.caption("Aucun tarif dans le catalogue — voir la page **Tarifs**.")
@@ -367,7 +364,6 @@ if page == "🆕 Créer / Éditer":
                     )
                     st.success(f"Document **{numero_doc}** enregistré.")
                 reset_formulaire_document()
-                st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -481,17 +477,14 @@ elif page == "🗂️ Documents":
                 if st.button("➡️ Transformer en facture", use_container_width=True):
                     nouvel_id = db.transformer_devis_en_facture(doc["id"])
                     st.success(f"Facture créée à partir du devis {doc['numero']}.")
-                    st.rerun()
             else:
                 if st.button("🔀 Dupliquer", use_container_width=True):
                     dupliquer_document(doc["id"])
                     st.success("Document dupliqué.")
-                    st.rerun()
 
         with col_a4:
             if st.button("🗑️ Supprimer", use_container_width=True):
                 st.session_state.confirm_suppr = doc["id"]
-                st.rerun()
 
         if st.session_state.get("confirm_suppr") == doc["id"]:
             st.error(f"Confirmer la suppression définitive du document {doc['numero']} ?")
@@ -501,11 +494,9 @@ elif page == "🗂️ Documents":
                     db.delete_document(doc["id"])
                     del st.session_state["confirm_suppr"]
                     st.success("Document supprimé.")
-                    st.rerun()
             with colc2:
                 if st.button("❌ Annuler"):
                     del st.session_state["confirm_suppr"]
-                    st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -533,7 +524,6 @@ elif page == "💰 Tarifs":
             else:
                 db.create_tarif(designation.strip(), description, montant_ttc, taux_tva, unite.strip() or "forfait")
                 st.success(f"Tarif **{designation}** ajouté au catalogue.")
-                st.rerun()
 
     st.markdown("---")
     st.subheader("Catalogue de tarifs")
@@ -582,12 +572,10 @@ elif page == "💰 Tarifs":
                                 taux_tva_e, unite_e.strip() or "forfait", int(actif_e),
                             )
                             st.success("Tarif mis à jour.")
-                            st.rerun()
                     with col_del:
                         if st.form_submit_button("🗑️ Supprimer", use_container_width=True):
                             db.delete_tarif(tarif["id"])
                             st.success("Tarif supprimé.")
-                            st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -612,7 +600,6 @@ elif page == "👤 Clients":
             else:
                 db.create_client(nom.strip(), adresse, code_postal_ville, email, telephone, siret)
                 st.success(f"Client **{nom}** ajouté.")
-                st.rerun()
 
     st.markdown("---")
     st.subheader("Clients enregistrés")
@@ -640,13 +627,11 @@ elif page == "👤 Clients":
                         if st.form_submit_button("💾 Enregistrer", use_container_width=True):
                             db.update_client(client["id"], nom_e.strip(), adresse_e, cpv_e, email_e, tel_e, siret_e)
                             st.success("Client mis à jour.")
-                            st.rerun()
                     with col_del:
                         if st.form_submit_button("🗑️ Supprimer", use_container_width=True):
                             try:
                                 db.delete_client(client["id"])
                                 st.success("Client supprimé.")
-                                st.rerun()
                             except ValueError as erreur:
                                 st.error(str(erreur))
 
@@ -674,12 +659,10 @@ elif page == "🏢 Paramètres":
             image = Image.open(BytesIO(fichier_logo.getvalue())).convert("RGBA")
             image.save(LOGO_PATH, format="PNG")
             st.success("Logo mis à jour.")
-            st.rerun()
         if LOGO_PATH.exists():
             if st.button("🗑️ Supprimer le logo"):
                 LOGO_PATH.unlink()
                 st.success("Logo supprimé.")
-                st.rerun()
 
     st.markdown("---")
     st.subheader("Informations de votre entreprise")
